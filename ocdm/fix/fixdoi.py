@@ -87,6 +87,9 @@ if __name__ == "__main__":
                                  "that are DOIs ('gid:1234').")
     arg_parser.add_argument("-d", "--doi", dest="doi", default="valid_doi.csv",
                             help="The list of valid DOI already found")
+    arg_parser.add_argument("-a", "--all", dest="all", default=False, action="store_true",
+                            help="The list of valid DOI already found is complete, and thus no requests to "
+                                 "external services will be done.")
 
     args = arg_parser.parse_args()
 
@@ -135,7 +138,7 @@ if __name__ == "__main__":
                         found = True
                         break
 
-                    else:
+                    elif not args.all:
                         tentative = 0
                         while tentative < 5:
                             tentative += 1
@@ -211,6 +214,8 @@ if __name__ == "__main__":
             br_entity = update_br.add_br(agent_name, res=br)
             br_entity.add_triples(has_identifier_statements)
 
+        print("Graph dimensions:", len(update_br.graphs()), len(remove_id.graphs()))
+        exit(0)
         print("Update brs")
         update_all(update_br, False, full_info_dir)
         print("Update ids")
