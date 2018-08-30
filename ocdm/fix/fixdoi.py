@@ -214,9 +214,6 @@ if __name__ == "__main__":
             br_entity = update_br.add_br(agent_name, res=br)
             br_entity.add_triples(has_identifier_statements)
 
-            print("Graph dimensions:\n", list(update_br.graphs()[0].triples((None, None, None))), "\n", list(remove_id.graphs()[0].triples((None, None, None))))
-            exit(0)
-
         print("Update brs")
         update_all(update_br, False, full_info_dir)
         print("Update ids")
