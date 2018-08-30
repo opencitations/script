@@ -36,7 +36,7 @@ from time import sleep
 
 
 base_api_url = "https://doi.org/api/handles/"
-agent_name="fixdoi.py"
+agent_name="FixDOI Script"
 
 
 def update_all(g_set, remove_entity, full_info_dir):
