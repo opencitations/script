@@ -31,7 +31,8 @@ from script.spacin.conf import base_iri, context_path, base_dir, temp_dir_for_rd
 from script.support.support import find_paths
 from script.spacin.resfinder import ResourceFinder
 from script.ocdm.datasethandler import DatasetHandler
-from os import sep
+from os import sep, path, makedirs
+from time import sleep
 
 
 base_api_url = "https://doi.org/api/handles/"
@@ -84,8 +85,22 @@ if __name__ == "__main__":
                                  "shape of this file must be a big dictionary having as key the string identifying "
                                  "the br (of the shape 'gbr:1234') and as value a list of strings identifying the ids "
                                  "that are DOIs ('gid:1234').")
+    arg_parser.add_argument("-d", "--doi", dest="doi", default="valid_doi.csv",
+                            help="The list of valid DOI already found")
 
     args = arg_parser.parse_args()
+
+    valid_doi = set()
+    if path.exists(args.doi):
+        with open(args.doi) as f:
+            for line in f.readlines():
+                stripped_line = line.strip()
+                if stripped_line != "":
+                    valid_doi.add(stripped_line)
+
+    doi_dir = path.dirname(args.doi)
+    if doi_dir != "" and not path.exists(doi_dir):
+        makedirs(doi_dir)
 
     info_dirs = {}
 
@@ -111,15 +126,31 @@ if __name__ == "__main__":
 
             found = False
 
-            for cur_id in id_list:
-                try:
-                    r = get(base_api_url + quote(cur_id["t"]), timeout=30)
-                    if r.status_code == 200:
+            with open(args.doi, 'a') as f_doi:
+                for cur_id in id_list:
+                    cur_doi = cur_id["t"]
+
+                    if cur_doi in valid_doi:
                         id_list.remove(cur_id)
                         found = True
                         break
-                except Timeout:
-                    break
+
+                    else:
+                        tentative = 0
+                        while tentative < 5:
+                            tentative += 1
+                            try:
+                                r = get(base_api_url + quote(cur_doi), timeout=30)
+
+                                if r.status_code == 200:
+                                    id_list.remove(cur_id)
+                                    found = True
+                                    f_doi.write(cur_doi + "\n")
+                                    valid_doi.add(cur_doi)
+                                    break
+                            except Exception:
+                                sleep(30)
+                                continue
 
             if found:
                 to_remove[URIRef(base_iri + sub("^g(..):(.+)$", "\\1/\\2", br))] = \
