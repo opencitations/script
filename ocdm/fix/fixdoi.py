@@ -147,10 +147,18 @@ if __name__ == "__main__":
                                     found = True
                                     f_doi.write(cur_doi + "\n")
                                     valid_doi.add(cur_doi)
-                                    break
+
+                                tentative = 0
+                                break  # Break anyway since something has been returned
                             except Exception:
                                 sleep(30)
                                 continue
+
+                        if found:
+                            break
+                        elif tentative == 5:
+                            print("Process stopped at DOI '%s' due to exceptions" % cur_doi)
+                            exit(0)
 
             if found:
                 to_remove[URIRef(base_iri + sub("^g(..):(.+)$", "\\1/\\2", br))] = \
@@ -202,7 +210,6 @@ if __name__ == "__main__":
 
             br_entity = update_br.add_br(agent_name, res=br)
             br_entity.add_triples(has_identifier_statements)
-            # TODO: eliminare triple dai grafi!!!
 
         print("Update brs")
         update_all(update_br, False, full_info_dir)
