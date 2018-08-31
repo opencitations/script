@@ -226,12 +226,8 @@ class Storer(object):
                    (query_type, str(cur_g.identifier), cur_g.serialize(format="nt11", encoding="utf-8").decode("utf-8"))
 
     def __store_in_file(self, cur_g, cur_file_path, context_path):
-        try:
-            cur_json_ld = json.loads(
-                cur_g.serialize(format="json-ld", context=self.__get_context(context_path)))
-        except Exception as e:
-            print(e, e.message)
-            exit(0)
+        cur_json_ld = json.loads(
+            cur_g.serialize(format="json-ld", context=self.__get_context(context_path)).decode("utf-8"))
 
         if isinstance(cur_json_ld, dict):
             cur_json_ld["@context"] = context_path
