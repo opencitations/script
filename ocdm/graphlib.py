@@ -715,8 +715,6 @@ class ProvSet(GraphSet):
             if last_snapshot_res is not None:
                 last_snapshot = self.add_se(self.cur_name, cur_subj, last_snapshot_res)
 
-            print(prov_subject, last_snapshot)
-
             # Snapshot
             cur_snapshot = None
             cur_snapshot = self.add_se(self.cur_name, cur_subj)
@@ -800,11 +798,17 @@ class ProvSet(GraphSet):
 
                 cur_activity.create_update_activity()
                 cur_activity.create_description(update_description)
-                cur_snapshot.derives_from(last_snapshot)
                 cur_snapshot.create_update_query(update_query_data[0])
 
-                last_snapshot.create_invalidation_time(cur_time)
-                cur_activity.invalidates(last_snapshot)
+                # Note: due to previous processing errors, it would be possible that no snapshot has been created
+                # in the past for an entity, even if the entity actually exists. In this case, since we have to modify
+                # the entity somehow, we create a new modification snapshot here without linking expicitly with the
+                # previous one – which does not (currently) exist. However, the common expectation is that such
+                # missing snapshop situation cannot happen.
+                if last_snapshot is not None:
+                    cur_snapshot.derives_from(last_snapshot)
+                    last_snapshot.create_invalidation_time(cur_time)
+                    cur_activity.invalidates(last_snapshot)
 
                 # Invalidate the new snapshopt if the entity has been removed
                 if remove_entity:
