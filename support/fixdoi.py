@@ -78,6 +78,18 @@ def update_all(g_set, remove_entity, full_info_dir):
     dset_handler.update_dataset_info(g_set)
 
 
+def write_to_disk(update_br, remove_id, full_info_dir, br_iri):
+    print("Update brs")
+    update_all(update_br, False, full_info_dir)
+    print("Update ids")
+    update_all(remove_id, True, full_info_dir)
+
+    # Add all br into the done thing
+    with open(args.br, "a") as f_br_done:
+        for cur_br_iri in br_iri:
+            f_br_done.write(cur_br_iri + "\n")
+
+
 if __name__ == "__main__":
     arg_parser = ArgumentParser(agent_name)
     arg_parser.add_argument("-i", "--input", dest="input", required=True,
@@ -85,6 +97,8 @@ if __name__ == "__main__":
                                  "shape of this file must be a big dictionary having as key the string identifying "
                                  "the br (of the shape 'gbr:1234') and as value a list of strings identifying the ids "
                                  "that are DOIs ('gid:1234').")
+    arg_parser.add_argument("-br", "--br", dest="br", default="br.csv",
+                            help="The file containing the brs that have been already done in past iteration.")
     arg_parser.add_argument("-d", "--doi", dest="doi", default="valid_doi.csv",
                             help="The list of valid DOI already found")
     arg_parser.add_argument("-a", "--all", dest="all", default=False, action="store_true",
@@ -92,6 +106,14 @@ if __name__ == "__main__":
                                  "external services will be done.")
 
     args = arg_parser.parse_args()
+
+    br_done = set()
+    if path.exists(args.br):
+        with open(args.br) as f:
+            for line in f.readlines():
+                stripped_line = line.strip()
+                if stripped_line != "":
+                    br_done.add(stripped_line)
 
     valid_doi = set()
     if path.exists(args.doi):
@@ -106,6 +128,7 @@ if __name__ == "__main__":
         makedirs(doi_dir)
 
     info_dirs = {}
+
 
     # It founds the list of ids (DOI) that must be deleted by contacting doi.org API for asking about the validity
     # of the specified DOIs.
@@ -168,55 +191,70 @@ if __name__ == "__main__":
                     [URIRef(iden) for iden in
                      [base_iri + sub("^g(..):(.+)$", "\\1/\\2", r_id["r"]) for r_id in id_list]]
 
-    s = Storer(context_map={context_path: context_file_path}, dir_split=dir_split_number,
-               n_file_item=items_per_file, default_dir=default_dir)
+        s = Storer(context_map={context_path: context_file_path}, dir_split=dir_split_number,
+                   n_file_item=items_per_file, default_dir=default_dir)
 
-    br_files = {}
-    id_files = {}
+        for full_info_dir in info_dirs:
+            br_iri = []
+            br_files = {}
+            id_files = {}
+            update_br = GraphSet(base_iri, context_path)
+            remove_id = GraphSet(base_iri, context_path)
 
-    update_br = GraphSet(base_iri, context_path)
-    remove_id = GraphSet(base_iri, context_path)
+            print("\n\nSupplier directory '%s'" % full_info_dir)
+            to_remove = info_dirs[full_info_dir]
+            br_counter = 0
 
-    for full_info_dir in info_dirs:
-        print("\n\nSupplier directory '%s'" % full_info_dir)
-        to_remove = info_dirs[full_info_dir]
+            for br in to_remove:
+                if br_counter == 10:  # Write everything on disk
+                    br_counter = 0
+                    write_to_disk(update_br, remove_id, full_info_dir, br_iri)
+                    # Initialize all the variables again
+                    br_iri = []
+                    br_files = {}
+                    id_files = {}
+                    update_br = GraphSet(base_iri, context_path)
+                    remove_id = GraphSet(base_iri, context_path)
 
-        for br in to_remove:
-            print("\nAnalyse %s" % br)
-            cur_dir, cur_file = find_paths(str(br), base_dir, base_iri, default_dir, dir_split_number, items_per_file)
-            if cur_file not in br_files:
-                g = s.load(cur_file, tmp_dir=temp_dir_for_rdf_loading)
-                br_files[cur_file] = g
+                if str(br) not in br_done:  # Check if it has not been considered, and if so process it
+                    br_counter += 1
+                    print("\nAnalyse %s" % br)
+                    cur_dir, cur_file = find_paths(str(br), base_dir, base_iri, default_dir,
+                                                   dir_split_number, items_per_file)
+                    if cur_file not in br_files:
+                        g = s.load(cur_file, tmp_dir=temp_dir_for_rdf_loading)
+                        br_files[cur_file] = g
 
-            cur_g = br_files[cur_file]
-            has_identifier_statements = []
+                    cur_g = br_files[cur_file]
+                    has_identifier_statements = []
 
-            # For each identifier to remove in a certain br...
-            for iden in to_remove[br]:
-                print("Analyse %s" % iden)
-                t = (br, GraphEntity.has_identifier, iden)
-                if t in cur_g:
-                    # ... it specify the statement 'br has_identifier id' to be removed in br (after this for block)...
-                    has_identifier_statements.append(t)
-                    cur_id_dir, cur_id_file = \
-                        find_paths(str(iden), base_dir, base_iri, default_dir, dir_split_number, items_per_file)
+                    # For each identifier to remove in a certain br...
+                    for iden in to_remove[br]:
+                        print("Analyse %s" % iden)
+                        t = (br, GraphEntity.has_identifier, iden)
+                        if t in cur_g:
+                            # ... it specify the statement 'br has_identifier id' to be removed in br
+                            # (after this for block)...
+                            has_identifier_statements.append(t)
+                            cur_id_dir, cur_id_file = find_paths(str(iden), base_dir, base_iri, default_dir,
+                                                                 dir_split_number, items_per_file)
 
-                    if cur_id_file not in id_files:
-                        g_id = s.load(cur_id_file, tmp_dir=temp_dir_for_rdf_loading)
-                        id_files[cur_id_file] = g_id
+                            if cur_id_file not in id_files:
+                                g_id = s.load(cur_id_file, tmp_dir=temp_dir_for_rdf_loading)
+                                id_files[cur_id_file] = g_id
 
-                    cur_id_g = id_files[cur_id_file]
+                            cur_id_g = id_files[cur_id_file]
 
-                    # ... and it removes all the statements having id as subject
-                    id_entity = remove_id.add_id(agent_name, res=iden)
-                    id_entity.add_triples(cur_id_g.triples((iden, None, None)))
+                            # ... and it removes all the statements having id as subject
+                            id_entity = remove_id.add_id(agent_name, res=iden)
+                            id_entity.add_triples(cur_id_g.triples((iden, None, None)))
 
-            br_entity = update_br.add_br(agent_name, res=br)
-            br_entity.add_triples(has_identifier_statements)
+                    br_entity = update_br.add_br(agent_name, res=br)
+                    br_entity.add_triples(has_identifier_statements)
+                    br_iri.append(str(br))
+                    br_done.add(str(br))
 
-        print("Update brs")
-        update_all(update_br, False, full_info_dir)
-        print("Update ids")
-        update_all(remove_id, True, full_info_dir)
+            if br_counter > 0:
+                write_to_disk(update_br, remove_id, full_info_dir, br_iri)  # Wrote the remaning ones
 
-print("END")
+    print("END")
