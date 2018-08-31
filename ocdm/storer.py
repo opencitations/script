@@ -89,13 +89,17 @@ class Storer(object):
 
         processed_graphs = {}
         for cur_g in self.g:
+            print("1:", cur_g)
             processed_graphs = self.store(cur_g, base_dir, base_iri, context_path, tmp_dir,
                                           override, processed_graphs, False, remove_data)
+            print("2:", cur_g)
 
         stored_graph_path = []
         for cur_file_path in processed_graphs:
+            print("3:", cur_file_path)
             stored_graph_path += [cur_file_path]
             self.__store_in_file(processed_graphs[cur_file_path], cur_file_path, context_path)
+            print("4:", cur_file_path)
 
         return stored_graph_path
 
