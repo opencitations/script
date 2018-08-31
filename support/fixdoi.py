@@ -206,7 +206,7 @@ if __name__ == "__main__":
             br_counter = 0
 
             for br in to_remove:
-                if br_counter == 1:  # Write everything on disk
+                if br_counter == 10:  # Write everything on disk
                     br_counter = 0
                     write_to_disk(update_br, remove_id, full_info_dir, br_iri)
                     # Initialize all the variables again
