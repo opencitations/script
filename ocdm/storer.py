@@ -89,17 +89,13 @@ class Storer(object):
 
         processed_graphs = {}
         for cur_g in self.g:
-            print("1:", cur_g)
             processed_graphs = self.store(cur_g, base_dir, base_iri, context_path, tmp_dir,
                                           override, processed_graphs, False, remove_data)
-            print("2:", cur_g)
 
         stored_graph_path = []
         for cur_file_path in processed_graphs:
-            print("3:", cur_file_path)
             stored_graph_path += [cur_file_path]
             self.__store_in_file(processed_graphs[cur_file_path], cur_file_path, context_path)
-            print("4:", cur_file_path)
 
         return stored_graph_path
 
@@ -230,18 +226,24 @@ class Storer(object):
                    (query_type, str(cur_g.identifier), cur_g.serialize(format="nt11", encoding="utf-8").decode("utf-8"))
 
     def __store_in_file(self, cur_g, cur_file_path, context_path):
+        print("1")
         cur_json_ld = json.loads(
             cur_g.serialize(format="json-ld", context=self.__get_context(context_path)))
 
+        print("2")
         if isinstance(cur_json_ld, dict):
+            print("3")
             cur_json_ld["@context"] = context_path
         else:  # it is a list
+            print("4")
             for item in cur_json_ld:
                 item["@context"] = context_path
-
+        print("5")
         with open(cur_file_path, "w") as f:
+            print("6")
             json.dump(cur_json_ld, f, indent=4, ensure_ascii=False)
 
+        print("7")
         self.repok.add_sentence("File '%s' added." % cur_file_path)
 
     def dir_and_file_paths(self, cur_g, base_dir, base_iri):
