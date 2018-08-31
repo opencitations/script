@@ -715,6 +715,8 @@ class ProvSet(GraphSet):
             if last_snapshot_res is not None:
                 last_snapshot = self.add_se(self.cur_name, cur_subj, last_snapshot_res)
 
+            print(prov_subject, last_snapshot)
+
             # Snapshot
             cur_snapshot = None
             cur_snapshot = self.add_se(self.cur_name, cur_subj)
@@ -760,7 +762,7 @@ class ProvSet(GraphSet):
                 cur_activity.involves_agent_with_role(cur_source_ass)
 
             # Old snapshot
-            if last_snapshot is None and do_insert:
+            if last_snapshot is None and do_insert:  # Create a new entity
                 cur_activity.create_creation_activity()
                 cur_activity.create_description("The entity '%s' has been created." % str(cur_subj.res))
             else:
