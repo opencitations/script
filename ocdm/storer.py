@@ -226,24 +226,22 @@ class Storer(object):
                    (query_type, str(cur_g.identifier), cur_g.serialize(format="nt11", encoding="utf-8").decode("utf-8"))
 
     def __store_in_file(self, cur_g, cur_file_path, context_path):
-        print("1")
-        cur_json_ld = json.loads(
-            cur_g.serialize(format="json-ld", context=self.__get_context(context_path)))
+        try:
+            cur_json_ld = json.loads(
+                cur_g.serialize(format="json-ld", context=self.__get_context(context_path)))
+        except Exception as e:
+            print(e, e.message)
+            exit(0)
 
-        print("2")
         if isinstance(cur_json_ld, dict):
-            print("3")
             cur_json_ld["@context"] = context_path
         else:  # it is a list
-            print("4")
             for item in cur_json_ld:
                 item["@context"] = context_path
-        print("5")
+
         with open(cur_file_path, "w") as f:
-            print("6")
             json.dump(cur_json_ld, f, indent=4, ensure_ascii=False)
 
-        print("7")
         self.repok.add_sentence("File '%s' added." % cur_file_path)
 
     def dir_and_file_paths(self, cur_g, base_dir, base_iri):
