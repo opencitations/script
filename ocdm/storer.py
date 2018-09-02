@@ -95,6 +95,7 @@ class Storer(object):
         stored_graph_path = []
         for cur_file_path in processed_graphs:
             stored_graph_path += [cur_file_path]
+
             self.__store_in_file(processed_graphs[cur_file_path], cur_file_path, context_path)
 
         return stored_graph_path
@@ -226,8 +227,21 @@ class Storer(object):
                    (query_type, str(cur_g.identifier), cur_g.serialize(format="nt11", encoding="utf-8").decode("utf-8"))
 
     def __store_in_file(self, cur_g, cur_file_path, context_path):
+
+        # Note: the following lines from here and until 'cur_json_ld' are a sort of hack for including all
+        # the triples of the input graph into the final stored file. Some how, some of them are not written
+        # in such file otherwise - in particular the provenance ones.
+        new_g = ConjunctiveGraph()
+        for s, p, o in cur_g.triples((None, None, None)):
+            g_iri = None
+            for g_context in cur_g.contexts((s, p, o)):
+                g_iri = g_context.identifier
+                break
+
+            new_g.addN([(s, p, o, g_iri)])
+
         cur_json_ld = json.loads(
-            cur_g.serialize(format="json-ld", context=self.__get_context(context_path)).decode("utf-8"))
+            new_g.serialize(format="json-ld", context=self.__get_context(context_path)).decode("utf-8"))
 
         if isinstance(cur_json_ld, dict):
             cur_json_ld["@context"] = context_path

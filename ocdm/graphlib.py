@@ -738,6 +738,7 @@ class ProvSet(GraphSet):
                 else:
                     cur_curator_agent = self.add_pa(self.cur_name, cur_curator_agent_res)
                 cur_curator_agent.has_role_in(cur_curator_ass)
+
             if cur_subj.source_agent is not None:
                 cur_source_ass = self.add_cr(self.cur_name, cur_subj)
                 cur_source_ass.has_role_type(ProvEntity.source_provider)
