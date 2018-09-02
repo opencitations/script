@@ -62,7 +62,7 @@ if __name__ == "__main__":
                             help="The table containing how some items have been included in the OCC.")
     arg_parser.add_argument("-f", "--format", dest="format", default="json-ld",
                             help="The format of the input file to specify.")
-    arg_parser.add_argument("-a", "--avoid_sparql_mapping", dest="avoid", default=True, action="store_false",
+    arg_parser.add_argument("-a", "--avoid_sparql_mapping", dest="avoid", default=False, action="store_true",
                             help="This will avoid to query the OCC triplestore for looking for more mappings.")
     arg_parser.add_argument("-sa", "--source_agent", dest="source_agent", default=None,
                             help="The source agent that provided the data to import.")
@@ -127,6 +127,7 @@ if __name__ == "__main__":
                         elif p2 == LITERAL.hasLiteralValue:
                             id_string = str(o2).strip()
 
+                    res = None
                     if is_doi:
                         res = rf.retrieve_from_doi(id_string)
                     elif is_isbn:
@@ -136,16 +137,25 @@ if __name__ == "__main__":
 
                     if res is not None:
                         mapping_table[str(s)] = str(res)
-                        f.write(str(s), str(res), "\n")
+                        f.write("%s,%s\n" % (str(s), str(res)))
 
     print("Change resources that already exist in the OCC.")
     for item in mapping_table:
         for s, p, o in g.triples((None, None, URIRef(item))):
-            g.add(s, p, URIRef(mapping_table[item]))
-            g.remove(s, p, o)
+            g.add((s, p, URIRef(mapping_table[item])))
+            g.remove((s, p, o))
 
-        for s, p, o in g.triples((URIRef(item), None, None)):
-            g.remove(s, p, o)
+        resource_to_remove = set()
+        resource_to_remove.add(URIRef(item))
+
+        while len(resource_to_remove):
+            res = resource_to_remove.pop()
+            for s, p, o in g.triples((res, None, None)):
+                g.remove((s, p, o))
+                if type(o) is URIRef and "/br/" not in str(o):
+                    resource_to_remove.add(o)
+
+
 
     full_info_dir = info_dir + args.prefix + sep
 
