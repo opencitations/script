@@ -46,7 +46,7 @@ agent_name="Import Script"
 def check_isbn(id_string, rf):
     res = rf.retrieve_from_isbn(id_string)
     if res is None:
-        if len(id_string.replace("-", "").replace("–", "")).strip() == 13:
+        if len(id_string.replace("-", "").replace("–", "").strip()) == 13:
             if id_string.startswith("978-"):
                 res = rf.retrieve_from_isbn(id_string[4:])
             if res is None and id_string.startswith("978"):
