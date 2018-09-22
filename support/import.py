@@ -43,6 +43,47 @@ LITERAL = Namespace("http://www.essepuntato.it/2010/06/literalreification/")
 agent_name="Import Script"
 
 
+def store_all(gs):
+    prov = ProvSet(gs, base_iri, context_path, default_dir, full_info_dir,
+                   ResourceFinder(base_dir=base_dir, base_iri=base_iri,
+                                  tmp_dir=temp_dir_for_rdf_loading,
+                                  context_map={context_path: context_file_path},
+                                  dir_split=dir_split_number,
+                                  n_file_item=items_per_file,
+                                  default_dir=default_dir),
+                   dir_split_number, items_per_file, "")  # Prefix set to "" so as to avoid it for prov data
+    prov.generate_provenance()
+
+    print("Store the data for %s entities." % str(entity_count))
+    res_storer = Storer(gs,
+                        context_map={context_path: context_file_path},
+                        dir_split=dir_split_number,
+                        n_file_item=items_per_file,
+                        default_dir=default_dir)
+
+    prov_storer = Storer(prov,
+                         context_map={context_path: context_file_path},
+                         dir_split=dir_split_number,
+                         n_file_item=items_per_file,
+                         default_dir=default_dir)
+
+    res_storer.store_all(
+        base_dir, base_iri, context_path,
+        temp_dir_for_rdf_loading)
+
+    prov_storer.store_all(
+        base_dir, base_iri, context_path,
+        temp_dir_for_rdf_loading)
+
+    print("Update the dataset description.")
+    dset_handler = DatasetHandler(triplestore_url_real,
+                                  context_path,
+                                  context_file_path, base_iri,
+                                  base_dir, full_info_dir, dataset_home,
+                                  temp_dir_for_rdf_loading)
+    dset_handler.update_dataset_info(gs)
+
+
 def check_isbn(id_string, rf):
     res = rf.retrieve_from_isbn(id_string)
     if res is None:
@@ -161,7 +202,14 @@ if __name__ == "__main__":
 
     print("Generate data compliant with the OCDM.")
     gs = GraphSet(base_iri, context_path)
+    entity_count = 1000
+    counter = 0
     for s in g.subjects():
+        if counter == entity_count:
+            store_all(gs)
+            counter = 0
+            gs = GraphSet(base_iri, context_path)
+
         with open(args.done, "a") as f:
             s_string = str(s)
             if s_string not in done:
@@ -183,44 +231,11 @@ if __name__ == "__main__":
                     entity.add_triples(g.triples((s, None, None)))
                     done.add(s_string)
                     f.write(s_string + "\n")
+                    counter += 1
                 else:
                     print("Something went wrong with resource '%s'." % s_string)
 
-    prov = ProvSet(gs, base_iri, context_path, default_dir, full_info_dir,
-                   ResourceFinder(base_dir=base_dir, base_iri=base_iri,
-                                  tmp_dir=temp_dir_for_rdf_loading,
-                                  context_map={context_path: context_file_path},
-                                  dir_split=dir_split_number,
-                                  n_file_item=items_per_file,
-                                  default_dir=default_dir),
-                   dir_split_number, items_per_file, "")   # Prefix set to "" so as to avoid it for prov data
-    prov.generate_provenance()
+    if counter > 0:
+        store_all(gs)
 
-    print("Store the data.")
-    res_storer = Storer(gs,
-                        context_map={context_path: context_file_path},
-                        dir_split=dir_split_number,
-                        n_file_item=items_per_file,
-                        default_dir=default_dir)
-
-    prov_storer = Storer(prov,
-                         context_map={context_path: context_file_path},
-                         dir_split=dir_split_number,
-                         n_file_item=items_per_file,
-                         default_dir=default_dir)
-
-    res_storer.store_all(
-        base_dir, base_iri, context_path,
-        temp_dir_for_rdf_loading)
-
-    prov_storer.store_all(
-        base_dir, base_iri, context_path,
-        temp_dir_for_rdf_loading)
-
-    print("Update the dataset description.")
-    dset_handler = DatasetHandler(triplestore_url_real,
-                                  context_path,
-                                  context_file_path, base_iri,
-                                  base_dir, full_info_dir, dataset_home,
-                                  temp_dir_for_rdf_loading)
-    dset_handler.update_dataset_info(gs)
+    print("Done.")
