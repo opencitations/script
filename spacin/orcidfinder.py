@@ -60,7 +60,17 @@ class ORCIDFinder(object):
         self.repok.new_article()
         self.reper.new_article()
 
-        cur_query = "digital-object-ids:\"%s\"" % doi_string
+        cur_query = "doi-self:\"%s\"" % doi_string
+        doi_string_l = doi_string.lower()
+        doi_string_u = doi_string.upper()
+        if doi_string_l != doi_string or doi_string_u != doi_string:
+            cur_query = "(" + cur_query
+            if doi_string_l != doi_string:
+                cur_query += " OR doi-self:" + doi_string_l
+            if doi_string_u != doi_string:
+                cur_query += " OR doi-self:" + doi_string_u
+            cur_query += ")"
+
         if family_names:
             cur_query += " AND ("
             first_name = True
