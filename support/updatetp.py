@@ -50,7 +50,7 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     SE_URL = args.se_url
-    INPUT_FILE = args.input_gile
+    INPUT_FILE = args.input_file
     GRAPH_URL = args.graph_name
     date_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
