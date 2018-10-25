@@ -60,7 +60,7 @@ if __name__ == "__main__":
     if isdir(INPUT_FILE):
         for cur_dir, cur_subdir, cur_files in walk(INPUT_FILE):
             for cur_file in cur_files:
-                if cur_file.endswith(".nt"):
+                if cur_file.endswith(".nt") or cur_file.endswith(".ttl"):
                     all_files.append(cur_dir + sep + cur_file)
     else:
         all_files.append(INPUT_FILE)
