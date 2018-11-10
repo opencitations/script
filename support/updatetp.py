@@ -66,7 +66,7 @@ if __name__ == "__main__":
     for file in glob("updatetp_report_*.txt"):
         with open(file) as f:
             for line in f.readlines():
-                already_done.add(basename(sub("^.+'([^']+)'.*$", "\\1", line)))
+                already_done.add(basename(sub("^.+'([^']+)'.*$", "\\1", line)).strip())
 
     all_files = []
     if isdir(INPUT_FILE):
