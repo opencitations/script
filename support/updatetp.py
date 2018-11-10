@@ -22,6 +22,7 @@ from os import walk, system
 from argparse import ArgumentParser
 from glob import glob
 from re import sub
+from os.path import basename
 
 from SPARQLWrapper import SPARQLWrapper
 
@@ -65,14 +66,14 @@ if __name__ == "__main__":
     for file in glob("updatetp_report_*.txt"):
         with open(file) as f:
             for line in f.readlines():
-                already_done.add(sub("^.+'([^']+)'.*$", "\\1", line))
+                already_done.add(basename(sub("^.+'([^']+)'.*$", "\\1", line)))
 
     all_files = []
     if isdir(INPUT_FILE):
         for cur_dir, cur_subdir, cur_files in walk(INPUT_FILE):
             for cur_file in cur_files:
                 cur_file_abs_path = cur_dir + sep + cur_file
-                if cur_file_abs_path not in already_done and \
+                if basename(cur_file_abs_path) not in already_done and \
                         (cur_file_abs_path.endswith(".nt") or cur_file_abs_path.endswith(".ttl")):
                     all_files.append(cur_file_abs_path)
     else:
