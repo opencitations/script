@@ -18,8 +18,10 @@ __author__ = 'essepuntato'
 
 from datetime import datetime
 from os.path import abspath, isdir, sep
-from os import walk
+from os import walk, system
 from argparse import ArgumentParser
+from glob import glob
+from re import sub
 
 from SPARQLWrapper import SPARQLWrapper
 
@@ -40,12 +42,15 @@ if __name__ == "__main__":
                                                            "the graph enclosing them.")
     arg_parser.add_argument("-s", "--sparql_endpoint",
                             dest="se_url", required=True,
-                            help="The URL of the SPARQL endpoint.",
-                            default="http://localhost:3000/blazegraph/sparql")
+                            help="The URL of the SPARQL endpoint.")
     arg_parser.add_argument("-i", "--input_file", dest="input_file", required=True,
                             help="The path to the NT file to upload on the triplestore.")
     arg_parser.add_argument("-g", "--graph", dest="graph_name", required=True,
                             help="The graph URL to associate to the triples.")
+    # arg_parser.add_argument("-m", "--move", dest="move_path", default=False, action="store_true",
+    #                         help="The directory where to move the file that have been processed.")
+    # arg_parser.add_argument("-n", "--niter", dest="number_iteration", default=10, type=int,
+    #                         help="The number of files to upload before to restart the triplestore.")
 
     args = arg_parser.parse_args()
 
@@ -56,16 +61,26 @@ if __name__ == "__main__":
 
     print("# Process starts")
 
+    already_done = set()
+    for file in glob("updatetp_report_*.txt"):
+        with open(file) as f:
+            for line in f.readlines():
+                already_done.add(sub("^.+'([^']+)'.*$", "\\1", line))
+
     all_files = []
     if isdir(INPUT_FILE):
         for cur_dir, cur_subdir, cur_files in walk(INPUT_FILE):
             for cur_file in cur_files:
-                if cur_file.endswith(".nt") or cur_file.endswith(".ttl"):
-                    all_files.append(cur_dir + sep + cur_file)
+                cur_file_abs_path = cur_dir + sep + cur_file
+                if cur_file_abs_path not in already_done and \
+                        (cur_file_abs_path.endswith(".nt") or cur_file_abs_path.endswith(".ttl")):
+                    all_files.append(cur_file_abs_path)
     else:
         all_files.append(INPUT_FILE)
 
-    for cur_file in all_files:
+    print("%s files to upload." % str(len(all_files)))
+
+    for idx, cur_file in enumerate(all_files):
         print("\nUploading file '%s'" % cur_file)
         add(SE_URL, GRAPH_URL, cur_file, date_str)
         print("Done.")
